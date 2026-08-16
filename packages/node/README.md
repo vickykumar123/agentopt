@@ -209,6 +209,6 @@ additional operational commands (`check`, `drift`, `compare`, `simulate`, and
 
 Full setup, examples, configuration, CLI, output, workspace, and architecture:
 
-<https://github.com/agentopt/agentopt#documentation>
+<https://github.com/vickykumar123/agentopt#documentation>
 
 The package metadata declares agentopt under the MIT license.

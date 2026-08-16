@@ -4,7 +4,7 @@ Write what your agent *should* do in GOALS.md; agentopt measures the gap and
 closes it: prompts, LLM parameters, tool descriptions, workflow, and a learned
 playbook. No model training required.
 
-https://github.com/agentopt/agentopt
+https://github.com/vickykumar123/agentopt
 """
 
 from __future__ import annotations
