@@ -1,0 +1,91 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentopt"
+version = "0.0.1"
+description = "Self-improving loop for your existing AI agent: write GOALS.md, agentopt measures the gap and closes it - prompts, params, tools, workflow. No model training. Under active development."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Vicky Kumar" }]
+keywords = ["ai", "agents", "evals", "optimization", "prompt-engineering", "self-improving"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "pydantic>=2.13.4",
+    "pyyaml>=6.0.3",
+    "libcst>=1.9.0",
+    "openai>=2.53.0",
+    "anthropic>=0.121.0",
+    "httpx>=0.28.1",
+    # Tier-4 code delegation over a model API (cloud/ollama backends).
+    "deepagents>=0.2",
+]
+
+[project.optional-dependencies]
+charts = [
+    "matplotlib>=3.9",
+]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.2",
+    "mypy>=2.3.0",
+    "jsonschema>=4.26.0",
+    "types-PyYAML>=6.0.12",
+    # Web frameworks exercised by the attach-mode interceptor tests.
+    "fastapi>=0.115",
+    "flask>=3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/vickykumar123/agentopt"
+
+[project.scripts]
+agentopt = "agentopt.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentopt"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["examples"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # bugbear
+    "SIM", # simplify
+    "S",   # bandit (security)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.mypy]
+strict = true
+packages = ["agentopt"]
+mypy_path = "src"
+
+# deepagents ships without type stubs; starlette/flask are optional attach-mode
+# integration targets, absent from the base install.
+[[tool.mypy.overrides]]
+module = ["deepagents.*", "starlette.*", "flask.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

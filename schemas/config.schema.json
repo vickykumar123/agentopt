@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/config.schema.json",
+  "title": "agentopt.yaml",
+  "description": "User-owned configuration file at the project root. Scaffolded by `agentopt init`; every value is editable by hand at any time.",
+  "type": "object",
+  "required": [
+    "run"
+  ],
+  "properties": {
+    "run": {
+      "type": "object",
+      "description": "How agentopt invokes the user's agent. Exactly one invocation style must be set.",
+      "oneOf": [
+        {
+          "required": [
+            "command"
+          ]
+        },
+        {
+          "required": [
+            "http"
+          ]
+        },
+        {
+          "required": [
+            "python"
+          ]
+        },
+        {
+          "required": [
+            "node"
+          ]
+        }
+      ],
+      "properties": {
+        "command": {
+          "type": "string",
+          "description": "Subprocess command parsed into an argument list without a shell; {input} is replaced with the eval input."
+        },
+        "http": {
+          "type": "object",
+          "description": "HTTP harness: agentopt boots the server with the wiretap hook and sends each input as a request. Secrets go in ${ENV_VAR}; the input is substituted for {input}.",
+          "required": [
+            "url"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "url": { "type": "string", "description": "Endpoint that receives each eval input." },
+            "method": { "type": "string", "description": "HTTP method (default POST)." },
+            "headers": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "description": "Request headers; values may reference ${ENV_VAR}."
+            },
+            "body": { "type": "string", "description": "Request body template; {input} is the eval input." },
+            "output": { "type": "string", "description": "Dot-path to the reply in the JSON response, e.g. $.reply." },
+            "start": { "type": "string", "description": "Command agentopt runs to boot the server with the hook." },
+            "ready": { "type": "string", "description": "URL polled until the server responds." },
+            "ready_timeout_ms": { "type": "integer", "minimum": 1000, "description": "How long to wait for readiness." },
+            "request_timeout_ms": { "type": "integer", "minimum": 1000, "description": "Per-request bound on the agent HTTP call (a hung endpoint must not stall the run). Default 120000." }
+          }
+        },
+        "python": {
+          "type": "string",
+          "description": "Import path of a callable, e.g. my_agent.main:run_agent."
+        },
+        "node": {
+          "type": "string",
+          "description": "Module path and exported callable for the Node package, e.g. agentopt.entry.mjs:run."
+        }
+      },
+      "additionalProperties": false
+    },
+    "improver": {
+      "type": "object",
+      "description": "Models powering the improvement loop. Suggested at init, never hardcoded; roles may point at different backends.",
+      "properties": {
+        "backend": {
+          "enum": [
+            "claude-code",
+            "codex",
+            "cloud",
+            "ollama",
+            "auto"
+          ]
+        },
+        "optimizer": {
+          "type": "string"
+        },
+        "delegate": {
+          "enum": [
+            "claude-code",
+            "codex"
+          ],
+          "description": "Run the tier-4 code delegate (the agent that edits files) on a specific coding CLI, independent of `backend`. Unset = derive from `backend`."
+        },
+        "judge": {
+          "type": "string"
+        },
+        "judge_command": {
+          "type": "string",
+          "description": "A command that scores outputs instead of the built-in LLM judge (reads a JSON payload on stdin, prints a JSON {score} on stdout)."
+        },
+        "judge_samples": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Self-consistency for the LLM judge: median of re-samples on borderline gradings. 1 disables."
+        },
+        "judge_backend": {
+          "enum": [
+            "claude-code",
+            "codex",
+            "cloud",
+            "ollama"
+          ],
+          "description": "Run the judge on a separate backend from the optimizer/delegate. Unset = share the main backend."
+        },
+        "judge_base_url": {
+          "type": "string",
+          "description": "For a judge_backend: cloud judge, the OpenAI-compatible endpoint to grade against (provider-generic: Fireworks, Together, Groq, ...). Falls back to OPENAI_BASE_URL."
+        },
+        "judge_api_key_env": {
+          "type": "string",
+          "description": "Name of the env var holding the cloud judge's API key (e.g. FIREWORKS_API_KEY). Falls back to OPENAI_API_KEY."
+        },
+        "simulator": {
+          "type": "string"
+        },
+        "iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Improvement attempts per improve run."
+        },
+        "runs_per_check": {
+          "oneOf": [
+            {
+              "const": "auto"
+            },
+            {
+              "type": "integer",
+              "minimum": 1
+            }
+          ],
+          "description": "Agent runs per eval input; auto picks by check type."
+        },
+        "eval_concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many agent runs to score concurrently (bounded pool). Peak memory scales with this. 1 = serial."
+        },
+        "min_effect_pp": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Minimum paired net gain (pp) a change must clear to be accepted — the noise floor (#7). Default 1.0."
+        },
+        "reliability_regression_tolerance": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "How far candidate execution reliability may fall below baseline (fraction) before the change is rejected on reliability — the reliability gate runs BEFORE quality. Default 0.02."
+        },
+        "judge_concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many judge gradings to run concurrently. Speeds up an async/HTTP (cloud) judge; safe (stateless). 1 = serial."
+        },
+        "explore": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Diverse candidates generated and probed per cluster each round."
+        },
+        "delegate_timeout_seconds": {
+          "type": "integer",
+          "minimum": 30,
+          "description": "Wall-clock budget for one code-delegate attempt; on expiry it is killed and its edits reverted."
+        },
+        "code_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Stochastic multi-attempt per failing cluster in code-only mode. 1 = single attempt."
+        },
+        "stop_when_stuck": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Give up after this many fruitless iterations."
+        },
+        "require_holdout_gain": {
+          "type": "boolean",
+          "description": "Require unseen-data gain, not just non-regression."
+        },
+        "max_versions_per_run": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Stop after creating this many versions (applied fixes) in one run."
+        },
+        "generate_challenges": {
+          "type": "boolean",
+          "description": "When every check passes, invent adversarial challenges and keep improving (evolve mode)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "models": {
+      "type": "object",
+      "properties": {
+        "production": {
+          "type": "string",
+          "description": "The model the agent runs on in production; all optimization is validated against this."
+        },
+        "allowed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Pool the optimizer may test and suggest as replacements."
+        },
+        "never": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Models/patterns that must never be suggested (compliance, preference). Supports trailing-* glob."
+        }
+      },
+      "additionalProperties": false
+    },
+    "code": {
+      "type": "object",
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Extra glob paths to include as context (things invisible to tracing)."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob paths never read."
+        }
+      },
+      "additionalProperties": false
+    },
+    "protected": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Glob paths that may be read but never edited."
+    },
+    "websearch": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "provider": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "budget": {
+      "type": "object",
+      "properties": {
+        "max_tokens_per_run": {
+          "type": "integer",
+          "minimum": 1000,
+          "description": "Hard cap on agent tokens consumed by one improve run."
+        }
+      },
+      "additionalProperties": false
+    },
+    "privacy": {
+      "type": "object",
+      "properties": {
+        "redact": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Project-specific regular expressions applied by the review-time redactor. Trace-at-rest redaction is not currently enforced."
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Reserved retention target in days; automatic trace cleanup is not currently enforced."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

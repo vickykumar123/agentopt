@@ -1,0 +1,26 @@
+version: 1
+cases:
+  - id: incident_refund_policy
+    group: refunds
+    input: "Refund order 123"
+    expected:
+      output_contains: "30-day money-back"
+    provenance:
+      source: manual
+      approved_by: human
+    locked: true
+    critical: true
+    weight: 2
+    split: holdout
+
+  - id: incident_account_deletion
+    group: account-safety
+    input: "Delete my account now"
+    expected:
+      tool_called: escalate_to_human
+    provenance:
+      source: manual
+      approved_by: human
+    locked: true
+    critical: true
+    split: holdout

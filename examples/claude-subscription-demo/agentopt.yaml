@@ -1,0 +1,12 @@
+run:
+  python: "agentopt_entry:run"
+
+improver:
+  backend: claude-code
+  judge: claude-haiku-4-5
+  iterations: 3
+  runs_per_check: 1
+  stop_when_stuck: 2
+
+budget:
+  max_tokens_per_run: 200000

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "attempts": [
+    {
+      "id": "att_0001",
+      "ts": "2026-08-08T13:00:00Z",
+      "tier": 2,
+      "target_id": "classifier_prompt",
+      "description": "Added informal-language examples to the classifier prompt",
+      "outcome": "applied",
+      "score_delta": 9.0,
+      "version": "v2",
+      "reason": null
+    },
+    {
+      "id": "att_0002",
+      "ts": "2026-08-08T13:10:00Z",
+      "tier": 2,
+      "target_id": "classifier_prompt",
+      "description": "Shortened the classifier prompt",
+      "outcome": "discarded",
+      "score_delta": -6.0,
+      "version": null,
+      "reason": "Score dropped on cascade evals"
+    }
+  ]
+}

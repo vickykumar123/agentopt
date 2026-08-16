@@ -1,0 +1,13 @@
+run:
+  node: "agentopt.entry.mjs:run"
+
+improver:
+  backend: auto
+  # Reads JSON on stdin and prints {"score": 0..1, "reasoning": "..."}.
+  judge_command: "node scripts/agentopt-score.mjs"
+  judge_samples: 1
+  iterations: 3
+
+protected:
+  - agentopt.cases.yaml
+  - scripts/agentopt-score.mjs

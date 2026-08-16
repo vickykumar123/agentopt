@@ -1,0 +1,4 @@
+run:
+  node: "agentopt.entry.mjs:run"
+
+# TypeScript projects normally use agentopt.entry.mts:run.

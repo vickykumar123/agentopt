@@ -1,0 +1,30 @@
+run:
+  python: "agentopt_entry:run"
+
+improver:
+  backend: claude-code
+  judge: claude-haiku-4-5
+  iterations: 4
+  runs_per_check: 1
+  stop_when_stuck: 2
+
+models:
+  production: accounts/fireworks/models/kimi-k2p6
+  never: ["gpt-*"]
+
+code:
+  exclude: ["customers.db"]
+
+protected: ["db.py"]
+
+websearch:
+  enabled: true
+  provider: auto
+
+
+budget:
+  max_tokens_per_run: 300000
+
+privacy:
+  redact: []
+  retention_days: 30

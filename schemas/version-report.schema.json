@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/version-report.schema.json",
+  "title": "agentopt version report",
+  "description": "The structured source of truth for one improvement outcome (.agentopt/reports/report-*.json). Markdown/HTML (and the existing versions/vN.md) are RENDERED from this — numbers live here once, never duplicated across formats. Covers both accepted changes (a version) and rejected candidates (a run-level debug report). References the decision and scorecards by path.",
+  "type": "object",
+  "required": ["accepted", "candidate", "created_at"],
+  "properties": {
+    "created_at": { "type": "string", "format": "date-time" },
+    "accepted": { "type": "boolean" },
+    "version": {
+      "type": ["string", "null"],
+      "description": "History version created on acceptance, e.g. 'v5'. Null for a rejected candidate."
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["description", "tier", "target_id"],
+      "properties": {
+        "description": { "type": "string" },
+        "tier": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "target_id": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "decision_ref": { "type": ["string", "null"], "description": "Relative path to the decision-*.json this report renders. Null until the structured decision artifact is emitted." },
+    "changes": {
+      "type": ["object", "null"],
+      "description": "Files the candidate edited (null for a tier that changes no source, e.g. a pure param/overlay).",
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path"],
+            "properties": {
+              "path": { "type": "string" },
+              "diff": { "type": "string", "description": "Unified diff for this file." }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "cost": {
+      "type": ["object", "null"],
+      "description": "Operational summary for the run (feeds the lexicographic tiebreakers later).",
+      "properties": {
+        "tokens": { "type": ["integer", "null"], "minimum": 0 },
+        "latency_ms_p50": { "type": ["number", "null"], "minimum": 0 },
+        "runs": { "type": ["integer", "null"], "minimum": 0 },
+        "repeats": { "type": ["integer", "null"], "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "ledger_attempt_id": {
+      "type": ["string", "null"],
+      "description": "Foreign key into ledger.json — links the report to reward memory and to rollback."
+    },
+    "rollback_command": {
+      "type": ["string", "null"],
+      "description": "The exact undo, e.g. 'agentopt rollback v5'. Null for a rejected candidate."
+    },
+    "presentation": {
+      "type": ["object", "null"],
+      "description": "Render hints only — no decision data.",
+      "properties": {
+        "title": { "type": "string" },
+        "summary": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

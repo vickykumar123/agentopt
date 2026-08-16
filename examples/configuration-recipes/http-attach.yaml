@@ -1,0 +1,8 @@
+run:
+  http:
+    # No start command: launch the server yourself and register AgentOpt's
+    # ownership handshake with register_server() / registerServer().
+    ready: "http://localhost:8000/health"
+    url: "http://localhost:8000/chat"
+    body: '{"message":"{input}"}'
+    output: "$.reply"

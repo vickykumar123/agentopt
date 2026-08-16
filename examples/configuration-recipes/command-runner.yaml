@@ -1,0 +1,7 @@
+run:
+  # {input} becomes the current evaluation input. No shell is used.
+  command: "python agent.py --input {input}"
+
+improver:
+  backend: auto
+  runs_per_check: 2

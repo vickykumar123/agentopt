@@ -1,0 +1,65 @@
+# Choose exactly one runner. This reference uses managed HTTP so every HTTP
+# field can be shown; use the minimal recipes for Python, Node, or command.
+run:
+  http:
+    url: "http://localhost:8000/chat"
+    method: POST
+    headers:
+      Authorization: "Bearer ${AGENT_API_KEY}"
+      Content-Type: application/json
+    body: '{"message":"{input}"}'
+    output: "$.reply"
+    start: "uvicorn app:api --port 8000"
+    ready: "http://localhost:8000/health"
+    ready_timeout_ms: 30000
+    request_timeout_ms: 120000
+
+improver:
+  backend: claude-code
+  optimizer: claude-opus-4-8
+  delegate: codex
+  judge: accounts/fireworks/models/llama-v3p1-70b-instruct
+  judge_samples: 3
+  judge_backend: cloud
+  judge_base_url: https://api.fireworks.ai/inference/v1
+  judge_api_key_env: FIREWORKS_API_KEY
+  # Alternative to the judge fields above:
+  # judge_command: "python scripts/score.py"
+  simulator: claude-haiku-4-5
+  iterations: 5
+  runs_per_check: auto
+  eval_concurrency: 4
+  min_effect_pp: 1.0
+  reliability_regression_tolerance: 0.02
+  judge_concurrency: 1
+  explore: 3
+  delegate_timeout_seconds: 1800
+  code_attempts: 1
+  stop_when_stuck: 2
+  require_holdout_gain: false
+  max_versions_per_run: 5
+  generate_challenges: false
+
+models:
+  production: kimi-k2.5
+  allowed: [kimi-k2.5, llama-3.3-70b]
+  never: ["gpt-*"]
+
+code:
+  include: []
+  exclude: ["vendor/**", "legal/*.py"]
+
+protected:
+  - agentopt.cases.yaml
+  - services/compliance.py
+
+websearch:
+  enabled: true
+  provider: auto
+
+budget:
+  max_tokens_per_run: 500000
+
+privacy:
+  redact: ["customer-[0-9]+", "internal_[A-Z0-9]+"]
+  retention_days: 30

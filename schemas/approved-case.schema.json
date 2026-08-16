@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/approved-case.schema.json",
+  "title": "agentopt approved cases",
+  "description": "Durable, human-approved regression cases — the committed file `agentopt.cases.yaml` at the project root (NOT under .agentopt/, which is disposable tool state). agentopt proposes cases into .agentopt/review/generated-cases.yaml; a human promotes approved ones here, where they are version-controlled, shared with CI, and survive workspace cleanup. Compiled ALONGSIDE GOALS.md. `group` is an organizational LABEL (free text, not a foreign key); `goal_id` is reserved (inert) for a future strict reference into named GOALS goals. Legacy prose examples in GOALS.md keep compiling too.",
+  "type": "object",
+  "required": ["version", "cases"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "cases": { "type": "array", "items": { "$ref": "#/$defs/case" } }
+  },
+  "$defs": {
+    "case": {
+      "type": "object",
+      "required": ["id", "input", "expected"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "group": {
+          "type": ["string", "null"],
+          "description": "Optional organizational label for reporting, clustering, and coverage. NOT a foreign key — named 'group', not 'goal', so it is never mistaken for a strict reference and its meaning can't shift under a later migration."
+        },
+        "goal_id": {
+          "type": ["string", "null"],
+          "description": "RESERVED for the constraint-tier work: a strict reference to a defined goal id. Accepted but NOT resolved or consumed by the compiler today — do not rely on it having any effect yet."
+        },
+        "input": { "type": "string" },
+        "expected": {
+          "$ref": "#/$defs/expectation",
+          "description": "The check to assert. MUST map onto agentopt's existing compiled check vocabulary — it is not a new check language. Kept as a closed set here so the compiler translates it to the same checks GOALS.md produces."
+        },
+        "provenance": { "$ref": "#/$defs/provenance" },
+        "locked": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true: automated processes (optimizer, reflector, review) cannot delete, weaken, or rewrite this case. Only an explicit human-authorized command or a direct file edit can change it."
+        },
+        "critical": {
+          "type": "boolean",
+          "default": false,
+          "description": "A HARD CONSTRAINT: a fail-closed veto that runs BEFORE quality. A candidate that regresses this case (or stops executing it validly) is rejected outright — a gain elsewhere can never trade it away. Use for safety/business-critical behavior."
+        },
+        "weight": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1,
+          "description": "Priority weight WITHIN the quality dimension (a soft lever, unlike the binary `critical` veto). Scales this case's effect size when the gate weighs a candidate's net quality gain, so a gain or regression on a high-priority case counts more. Never trades against reliability/cost/holdout. 1 = normal."
+        },
+        "split": {
+          "enum": ["auto", "train", "holdout"],
+          "default": "auto",
+          "description": "Train/holdout assignment. 'auto' uses the normal salt-based rotation. An explicit 'train'/'holdout' PINS the case deterministically, overriding rotation — a locked holdout case must also be withheld from candidate generation."
+        },
+        "redaction": {
+          "type": ["object", "null"],
+          "description": "What was redacted from the trace before this case was written (shown to the human at approval time).",
+          "properties": {
+            "applied": { "type": "boolean" },
+            "fields": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "expectation": {
+      "description": "A closed set that maps 1:1 onto agentopt's EXISTING compiled check types (evals/models.py Check union) — NOT a new check language. Exactly one key. Extend only in lockstep with that union; a kind with no backing check must never be added. (No `output_matches`/regex here: the compiler has no regex check yet — that is a v2 item requiring a new RegexCheck in both packages.)",
+      "oneOf": [
+        { "type": "object", "required": ["output_contains"], "properties": { "output_contains": { "type": "string", "description": "-> OutputContainsCheck" } }, "additionalProperties": false },
+        { "type": "object", "required": ["output_equals"], "properties": { "output_equals": { "type": "string", "description": "-> ExactOutputCheck (trimmed exact match)" } }, "additionalProperties": false },
+        { "type": "object", "required": ["classified_as"], "properties": { "classified_as": { "type": "string", "description": "-> ClassificationCheck" } }, "additionalProperties": false },
+        { "type": "object", "required": ["tool_called"], "properties": { "tool_called": { "type": "string", "description": "-> RequiredToolCheck" } }, "additionalProperties": false },
+        { "type": "object", "required": ["tool_not_called"], "properties": { "tool_not_called": { "type": "string", "description": "-> ForbiddenToolCheck" } }, "additionalProperties": false },
+        { "type": "object", "required": ["route"], "properties": { "route": { "type": "string", "description": "-> RouteCheck" } }, "additionalProperties": false },
+        { "type": "object", "required": ["quality"], "properties": { "quality": { "type": "object", "required": ["rubric"], "properties": { "rubric": { "type": "string" }, "good_examples": { "type": "array", "items": { "type": "string" } }, "bad_examples": { "type": "array", "items": { "type": "string" } } }, "additionalProperties": false, "description": "-> JudgeCheck, SELF-CONTAINED: carries its own rubric (+ optional anchors), NOT a reference to a GOALS quality. Chosen because GOALS qualities have no stable identity yet (compiler-generated ids shift on insert/rename/collision); a cross-file quality reference is deferred to the goal_id work." } }, "additionalProperties": false }
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source"],
+      "description": "Where the expectation came from. The expected behavior is NEVER the raw production answer just because it occurred — it must trace to a human-confirmed source.",
+      "properties": {
+        "source": {
+          "enum": ["production_trace", "user_correction", "positive_feedback", "verified_outcome", "existing_goal", "manual"],
+          "description": "How the expectation was established. 'production_trace' still requires human approval to become active."
+        },
+        "trace_id": { "type": ["string", "null"], "description": "Originating run id; kept local, never shipped externally." },
+        "proposed_at": { "type": ["string", "null"], "format": "date-time" },
+        "approved_at": { "type": ["string", "null"], "format": "date-time" },
+        "approved_by": { "type": ["string", "null"], "description": "'human' (or an identifier). Absent until promoted." }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

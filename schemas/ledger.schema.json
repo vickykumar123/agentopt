@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/ledger.schema.json",
+  "title": "agentopt ledger",
+  "description": "Reward memory (.agentopt/ledger.json): every change ever attempted with its outcome, so no failed idea is retried and credit stays attributed across improvement runs.",
+  "type": "object",
+  "required": ["version", "attempts"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "attempts": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/attempt" }
+    }
+  },
+  "$defs": {
+    "attempt": {
+      "type": "object",
+      "required": ["id", "ts", "tier", "target_id", "description", "outcome"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "ts": { "type": "string", "format": "date-time" },
+        "tier": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "1 knobs, 2 prompts/tool descriptions, 3 playbook, 4 workflow/code."
+        },
+        "target_id": {
+          "type": "string",
+          "description": "Manifest entry id (or playbook bullet id) the change targeted."
+        },
+        "description": { "type": "string" },
+        "outcome": { "enum": ["applied", "discarded", "rolled_back"] },
+        "score_delta": {
+          "type": ["number", "null"],
+          "description": "Holdout score change in percentage points; null when discarded before full evaluation."
+        },
+        "version": {
+          "type": ["string", "null"],
+          "description": "History version created when applied, e.g. v5."
+        },
+        "reason": {
+          "type": ["string", "null"],
+          "description": "Why it was discarded or rolled back; read by the optimizer before proposing similar changes."
+        },
+        "fingerprint": {
+          "type": ["string", "null"],
+          "description": "Structural fingerprint of the proposed value (target + kind + normalized content) — lets a later run skip an exact retry without re-verifying it. Null for code candidates."
+        },
+        "decision_ref": {
+          "type": ["string", "null"],
+          "description": "Relative path (under .agentopt/reports/) to this attempt's structured decision artifact (schemas/decision.schema.json) — links the ledger to the auditable evidence the gate acted on. Null if none was written."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

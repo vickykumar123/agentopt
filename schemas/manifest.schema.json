@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/manifest.schema.json",
+  "title": "agentopt manifest",
+  "description": "The map from everything tunable (prompts, tool descriptions, generation params) to where it lives in the user's code (.agentopt/manifest.json). Built from wiretap stack traces confirmed by static analysis; entries that cannot be located precisely are marked non-editable rather than guessed.",
+  "type": "object",
+  "required": ["version", "created_at", "project_root", "entries"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "project_root": { "type": "string" },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    },
+    "models_detected": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["provider", "model"],
+        "properties": {
+          "provider": { "type": "string" },
+          "model": { "type": "string" },
+          "steps": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Entry ids of the pipeline steps observed using this model."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "required": ["id", "kind", "source_kind", "editable"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Stable human-readable identifier, e.g. classifier_prompt.",
+          "pattern": "^[a-z0-9][a-z0-9_]*$"
+        },
+        "kind": { "enum": ["prompt", "tool_description", "params"] },
+        "file": {
+          "type": ["string", "null"],
+          "description": "Path relative to project_root. Null when the source is not a file (e.g. database-stored params)."
+        },
+        "line": { "type": ["integer", "null"], "minimum": 1 },
+        "node_path": {
+          "type": ["string", "null"],
+          "description": "Parser-specific path to the AST node holding the value; consumed by the safe writer of the matching language."
+        },
+        "source_kind": {
+          "enum": ["literal", "fstring", "template_file", "config", "db", "unknown"]
+        },
+        "slots": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Interpolated variable names that any rewrite must preserve exactly."
+        },
+        "content_hash": {
+          "type": ["string", "null"],
+          "description": "sha256 hex of the current static content; drift detection compares this across runs.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "editable": {
+          "type": "boolean",
+          "description": "False when the value cannot be located precisely enough to rewrite safely; such entries receive recommendations instead of edits."
+        },
+        "prompt_hashes": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+          "description": "Runtime prompt hashes observed originating from this entry; links manifest entries to trace events."
+        },
+        "notes": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,13 @@
+run:
+  python: "agentopt_entry:run"
+
+improver:
+  backend: ollama
+  optimizer: llama3.2
+  judge: llama3.2
+  iterations: 3
+  runs_per_check: 1
+  stop_when_stuck: 2
+
+budget:
+  max_tokens_per_run: 200000

@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/decision.schema.json",
+  "title": "agentopt candidate decision",
+  "description": "The persisted account of ONE candidate verdict (.agentopt/reports/decisions/*.json). Python and Node build it from the gate inputs and shared predicates, then force its accepted/rejected result and stage trace to match the authoritative GateResult/GainDecision. The runtime gate and artifact are still separate types. The primary gate is lexicographic: stages are represented in order and the first failed stage decides. Evidence scorecards are referenced by path rather than copied.",
+  "type": "object",
+  "required": ["candidate", "accepted", "stages", "created_at"],
+  "properties": {
+    "created_at": { "type": "string", "format": "date-time" },
+    "candidate": {
+      "type": "object",
+      "required": ["id", "tier", "target_id", "description"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "tier": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "target_id": { "type": "string" },
+        "description": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "evidence_refs": {
+      "type": "object",
+      "description": "Relative paths to the scorecard artifacts this decision was computed from (referenced, not embedded).",
+      "properties": {
+        "baseline_train": { "type": "string" },
+        "candidate_train": { "type": "string" },
+        "baseline_holdout": { "type": ["string", "null"] },
+        "candidate_holdout": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "stages": {
+      "type": "array",
+      "description": "Lexicographic gate, in order. The first non-'passed' stage is decisive; later stages are 'skipped'.",
+      "items": {
+        "type": "object",
+        "required": ["stage", "status"],
+        "properties": {
+          "stage": {
+            "enum": ["execution_validity", "hard_constraints", "reliability", "coverage", "quality", "holdout", "tiebreak"]
+          },
+          "status": { "enum": ["passed", "failed", "skipped", "aborted"] },
+          "detail": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "dimensions": {
+      "type": "object",
+      "description": "The three separated dimensions, baseline vs candidate. Quality is compared ONLY over cases valid in both; reliability/coverage are their own gates and never fold into quality.",
+      "properties": {
+        "behavior_quality": {
+          "type": "object",
+          "properties": {
+            "baseline": { "type": ["number", "null"] },
+            "candidate": { "type": ["number", "null"] },
+            "net_gain_pp": { "type": ["number", "null"] },
+            "min_effect_pp": { "type": ["number", "null"] },
+            "significant": { "type": ["boolean", "null"], "description": "Paired significance at/above the min-case count." }
+          },
+          "additionalProperties": false
+        },
+        "execution_reliability": {
+          "type": "object",
+          "properties": {
+            "baseline": { "type": ["number", "null"] },
+            "candidate": { "type": ["number", "null"] },
+            "tolerance": { "type": ["number", "null"] },
+            "non_inferior": { "type": ["boolean", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "evaluation_coverage": {
+          "type": "object",
+          "properties": {
+            "baseline": { "type": ["number", "null"] },
+            "candidate": { "type": ["number", "null"] },
+            "judge_coverage_baseline": { "type": ["number", "null"] },
+            "judge_coverage_candidate": { "type": ["number", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "holdout": {
+          "type": "object",
+          "properties": {
+            "before": { "type": ["number", "null"] },
+            "after": { "type": ["number", "null"] },
+            "tolerance": { "type": ["number", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "operational_cost": {
+          "type": "object",
+          "description": "The cost/latency tiebreak — lexicographic (tokens, then latency), never a combined scalar. Orders behaviorally-equivalent candidates only; it never accepts a candidate that failed an earlier stage.",
+          "properties": {
+            "baseline_tokens": { "type": ["number", "null"] },
+            "candidate_tokens": { "type": ["number", "null"] },
+            "baseline_latency_ms": { "type": ["number", "null"] },
+            "candidate_latency_ms": { "type": ["number", "null"] },
+            "preference": { "enum": ["candidate", "baseline", "equal", "unknown"] },
+            "basis": { "enum": ["tokens", "latency", "none"] }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "case_movements": {
+      "type": "array",
+      "description": "Per-case change classification. 'newly_unmeasurable' is validity loss (the case went invalid in the candidate) — surfaced here, never silently dropped.",
+      "items": {
+        "type": "object",
+        "required": ["case_id", "movement"],
+        "properties": {
+          "case_id": { "type": "string" },
+          "movement": {
+            "enum": ["fixed", "improved", "unchanged", "worsened_inconclusive", "regressed", "newly_unmeasurable"]
+          },
+          "baseline_score": { "type": ["number", "null"] },
+          "candidate_score": { "type": ["number", "null"] },
+          "critical": { "type": "boolean", "default": false }
+        },
+        "additionalProperties": false
+      }
+    },
+    "accepted": { "type": "boolean" },
+    "rejection": {
+      "type": ["object", "null"],
+      "description": "Structured rejection reason (null when accepted) — consumed by the report and the ledger, not re-parsed from prose.",
+      "properties": {
+        "stage": { "enum": ["execution_validity", "hard_constraints", "reliability", "coverage", "quality", "holdout"] },
+        "category": { "type": "string", "description": "e.g. 'below_noise_floor', 'not_significant', 'constraint_regressed', 'reliability_inferior', 'overfitting'." },
+        "detail": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

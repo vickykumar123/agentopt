@@ -1,0 +1,14 @@
+run:
+  python: "agentopt_entry:run"
+
+improver:
+  backend: ollama
+  optimizer: llama3.2
+  judge: llama3.2
+  simulator: llama3.2
+
+models:
+  production: llama3.2
+  allowed: [llama3.2]
+
+# The run is fully local only when the target agent also uses a local model.

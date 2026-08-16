@@ -1,0 +1,19 @@
+run:
+  python: "agentopt_entry:run"
+
+improver:
+  backend: auto
+  iterations: 2
+  runs_per_check: 1
+  eval_concurrency: 1
+  stop_when_stuck: 1
+
+protected:
+  - agentopt.cases.yaml
+
+budget:
+  max_tokens_per_run: 50000
+
+privacy:
+  redact: []
+  retention_days: 7

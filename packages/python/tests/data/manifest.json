@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "created_at": "2026-08-08T12:05:00Z",
+  "project_root": "/home/user/my-agent",
+  "entries": [
+    {
+      "id": "classifier_prompt",
+      "kind": "prompt",
+      "file": "services/agent/classifier.py",
+      "line": 88,
+      "node_path": "module.classify.body[0].value",
+      "source_kind": "literal",
+      "slots": [],
+      "content_hash": "2577e0bcc9032d9b3cca899ee524ce28e42a9455be51f057e7d1271cca0daf73",
+      "editable": true,
+      "prompt_hashes": ["7f1c695ef0cb1cee56ea36870adb656ac5cdb4e5b3721ab5ef829b56617a8ba3"],
+      "notes": null
+    },
+    {
+      "id": "classifier_params",
+      "kind": "params",
+      "file": null,
+      "line": null,
+      "node_path": null,
+      "source_kind": "db",
+      "slots": [],
+      "content_hash": null,
+      "editable": false,
+      "prompt_hashes": [],
+      "notes": "Params come from the models table; recommendations only."
+    }
+  ],
+  "models_detected": [
+    {
+      "provider": "fireworks",
+      "model": "kimi-k2.5",
+      "steps": ["classifier_prompt"]
+    }
+  ]
+}

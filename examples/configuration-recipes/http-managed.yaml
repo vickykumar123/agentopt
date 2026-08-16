@@ -1,0 +1,13 @@
+run:
+  http:
+    start: "uvicorn app:api --port 8000"
+    ready: "http://localhost:8000/health"
+    ready_timeout_ms: 30000
+    url: "http://localhost:8000/chat"
+    method: POST
+    headers:
+      Authorization: "Bearer ${AGENT_API_KEY}"
+      Content-Type: application/json
+    body: '{"message":"{input}"}'
+    output: "$.reply"
+    request_timeout_ms: 120000

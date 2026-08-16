@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/trace.schema.json",
+  "title": "agentopt trace event",
+  "description": "One line of a trace file (.agentopt/traces/<date>/<run_id>.jsonl). A run is a sequence of events sharing a run_id: one run_meta line followed by llm_call and tool_call lines in execution order.",
+  "type": "object",
+  "required": ["run_id", "seq", "ts", "kind"],
+  "properties": {
+    "run_id": { "type": "string", "minLength": 1 },
+    "seq": { "type": "integer", "minimum": 0 },
+    "ts": { "type": "string", "format": "date-time" },
+    "kind": { "enum": ["run_meta", "llm_call", "tool_call"] }
+  },
+  "oneOf": [
+    { "$ref": "#/$defs/run_meta" },
+    { "$ref": "#/$defs/llm_call" },
+    { "$ref": "#/$defs/tool_call" }
+  ],
+  "$defs": {
+    "call_site": {
+      "type": "object",
+      "description": "Where in the user's code the call originated, resolved from the stack trace.",
+      "required": ["file", "line"],
+      "properties": {
+        "file": { "type": "string" },
+        "line": { "type": "integer", "minimum": 1 },
+        "function": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "message": {
+      "type": "object",
+      "required": ["role", "content"],
+      "properties": {
+        "role": { "type": "string" },
+        "content": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "run_meta": {
+      "type": "object",
+      "required": ["kind", "mode", "agentopt_version"],
+      "properties": {
+        "kind": { "const": "run_meta" },
+        "mode": { "enum": ["observe", "eval", "optimize"] },
+        "input": {
+          "type": ["string", "null"],
+          "description": "The top-level input the agent was invoked with, if known."
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "agentopt_version": { "type": "string" }
+      }
+    },
+    "llm_call": {
+      "type": "object",
+      "required": ["kind", "provider", "model", "messages", "prompt_hash"],
+      "properties": {
+        "kind": { "const": "llm_call" },
+        "provider": { "type": "string" },
+        "model": { "type": "string" },
+        "params": {
+          "type": "object",
+          "description": "Generation parameters as sent. Well-known keys are normalized; provider-specific keys pass through.",
+          "properties": {
+            "temperature": { "type": ["number", "null"] },
+            "max_output_tokens": { "type": ["integer", "null"] },
+            "top_p": { "type": ["number", "null"] },
+            "seed": { "type": ["integer", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "messages": { "type": "array", "items": { "$ref": "#/$defs/message" } },
+        "prompt_hash": {
+          "type": "string",
+          "description": "sha256 hex of the canonical prompt (see hashing spec); links trace events to manifest entries.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tools_offered": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": { "type": "string" },
+              "description": { "type": ["string", "null"] }
+            },
+            "additionalProperties": true
+          }
+        },
+        "response": {
+          "type": ["object", "null"],
+          "properties": {
+            "content": { "type": ["string", "null"] },
+            "tool_calls": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "arguments": {}
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "usage": {
+          "type": ["object", "null"],
+          "properties": {
+            "input_tokens": { "type": ["integer", "null"] },
+            "output_tokens": { "type": ["integer", "null"] }
+          },
+          "additionalProperties": true
+        },
+        "cost_usd": { "type": ["number", "null"] },
+        "latency_ms": { "type": ["number", "null"] },
+        "call_site": {
+          "oneOf": [{ "$ref": "#/$defs/call_site" }, { "type": "null" }]
+        },
+        "error": { "type": ["string", "null"] }
+      }
+    },
+    "tool_call": {
+      "type": "object",
+      "required": ["kind", "name"],
+      "properties": {
+        "kind": { "const": "tool_call" },
+        "name": { "type": "string" },
+        "arguments": {},
+        "result": {},
+        "replayed": {
+          "type": "boolean",
+          "description": "True when the result came from a record-replay mock rather than a live tool execution."
+        },
+        "latency_ms": { "type": ["number", "null"] },
+        "call_site": {
+          "oneOf": [{ "$ref": "#/$defs/call_site" }, { "type": "null" }]
+        },
+        "error": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

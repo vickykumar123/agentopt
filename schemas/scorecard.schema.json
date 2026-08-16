@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/scorecard.schema.json",
+  "title": "agentopt scorecard",
+  "description": "One measurement of the agent against its goals (.agentopt/reports/*.json). Every case carries a continuous score in [0,1] (deterministic checks are 0 or 1; the judge grades continuously); the case score is the mean over its runs, and the scorecard score is the mean over cases. status is a threshold on the case score, kept for display.",
+  "type": "object",
+  "required": ["version", "created_at", "measured_cases", "skipped_cases", "cases"],
+  "properties": {
+    "version": { "type": "integer", "minimum": 1 },
+    "created_at": { "type": "string", "format": "date-time" },
+    "score": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Mean continuous case score, in percent. Null if nothing was measurable."
+    },
+    "measured_cases": { "type": "integer", "minimum": 0 },
+    "skipped_cases": { "type": "integer", "minimum": 0 },
+    "cases": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/case_result" }
+    },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "runs_total": { "type": "integer", "minimum": 0 },
+    "runs_failed": { "type": "integer", "minimum": 0 },
+    "sample_failure": { "type": ["string", "null"] },
+
+    "behavior_quality": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Mean case behavior score, in percent, over VALID executions only — the quality dimension, separated from reliability. (New; optional for back-compat with pre-separation scorecards.)"
+    },
+    "execution_reliability": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Valid executions / attempted executions, aggregate. A flaky provider lowers this, NOT behavior_quality."
+    },
+    "evaluation_coverage": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Successfully measured checks / configured checks. A check that could not run (check_error) lowers coverage, not quality."
+    },
+    "judge_coverage": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Judged quality checks / configured quality checks — a subtype of evaluation_coverage. Judge unavailability lowers this, never appearing as a quality gain."
+    },
+    "total_tokens": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Agent tokens self-reported across all runs (the cost signal, black-box-friendly). Null when no run reported usage."
+    },
+    "total_latency_ms": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "description": "Summed model+tool time across all runs (from the trace). 0/null in black-box mode. A lexicographic tiebreaker: prefer cheaper/faster among otherwise-equal candidates."
+    }
+  },
+  "$defs": {
+    "case_result": {
+      "type": "object",
+      "required": ["case_id", "source", "layer", "runs", "passed_runs", "score", "status", "detail"],
+      "properties": {
+        "case_id": { "type": "string", "minLength": 1 },
+        "source": {
+          "type": "string",
+          "description": "The GOALS.md text this case was compiled from."
+        },
+        "layer": { "type": "integer", "minimum": 1, "maximum": 3 },
+        "runs": { "type": "integer", "minimum": 0 },
+        "passed_runs": { "type": "integer", "minimum": 0 },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Mean per-run score in [0,1] — the continuous reward this case contributes."
+        },
+        "status": { "enum": ["passed", "failed", "skipped"] },
+        "detail": { "type": "string" },
+
+        "attempted_runs": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Total agent executions attempted — the RELIABILITY denominator and resample budget. `runs` counts only GRADED executions, so with a flaky judge runs < attempted_runs. Null on pre-separation cards (fall back to runs)."
+        },
+        "valid_runs": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Runs that executed validly (outcome == 'valid') — the RELIABILITY numerator; <= attempted_runs. Null on pre-separation cases."
+        },
+        "valid_graded_runs": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Runs that executed validly AND received a grade — the behavior_score merge weight; <= valid_runs. Null on pre-separation cards (fall back to valid_runs)."
+        },
+        "executions": {
+          "type": ["array", "null"],
+          "description": "The agent executions this case was graded against, BY IDENTITY, so suite reliability is computed over UNIQUE executions (cases sharing a run — e.g. null-input checks on one surface — must not double-count it). Null on pre-separation/hand-built cards.",
+          "items": {
+            "type": "object",
+            "required": ["id", "valid"],
+            "properties": {
+              "id": { "type": "string", "description": "Execution id, unique within a scorecard and distinct across separate eval runs (resamples)." },
+              "valid": { "type": "boolean", "description": "Whether the agent process executed validly." }
+            },
+            "additionalProperties": false
+          }
+        },
+        "behavior_score": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Mean output quality over this case's VALID runs. Null when valid_runs == 0 (the case is unmeasurable for quality — a reliability signal, handled by the reliability gate, never counted as quality 0)."
+        },
+        "failure_breakdown": {
+          "type": ["object", "null"],
+          "description": "Counts per run-level failure category (see run-evidence.schema.json run_outcome). Sums to runs - valid_runs.",
+          "properties": {
+            "agent_error": { "type": "integer", "minimum": 0 },
+            "timeout": { "type": "integer", "minimum": 0 },
+            "provider_error": { "type": "integer", "minimum": 0 },
+            "invalid_response": { "type": "integer", "minimum": 0 },
+            "runner_error": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "check_status": {
+          "description": "Whether this case's check could be evaluated at all — feeds coverage, distinct from pass/fail. 'judge_unavailable'/'check_error' are coverage misses, not quality failures.",
+          "enum": ["measured", "judge_unavailable", "check_error"]
+        },
+        "passes_on_any_run": {
+          "type": "boolean",
+          "description": "Aggregation policy: when true, one satisfying run suffices so the case score is the MAX over runs; otherwise runs are AVERAGED. Recorded so accumulated resampling merges preserve the engine's aggregation."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

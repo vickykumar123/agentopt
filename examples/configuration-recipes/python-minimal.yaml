@@ -1,0 +1,4 @@
+run:
+  python: "agentopt_entry:run"
+
+# All omitted sections use defaults. Add them only when needed.

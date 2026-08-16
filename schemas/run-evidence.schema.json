@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentopt.dev/schemas/run-evidence.schema.json",
+  "title": "agentopt run evidence",
+  "description": "Evidence from evaluating the agent, at TWO granularities kept deliberately separate. ONE agent execution can be graded by SEVERAL checks (a case's own check plus every universal rule), so an execution and a case-grade are different atoms — conflating them into one score-per-run is wrong. An `execution_evidence` record is the run-level fact (did it execute, how much did it cost); a `case_run_grade` is one (run, case) quality grade. Both aggregate into a case_result in the scorecard. This split is what lets the gate separate 'the agent gave a bad answer' (quality, on the grade) from 'the agent failed to execute' (reliability, on the execution): a grade only enters behavior quality when its execution's outcome == 'valid'. NOTE: not yet emitted as a runtime artifact — this is the contract for when per-candidate evidence is persisted and linked from decisions (evidence_refs).",
+  "oneOf": [
+    { "$ref": "#/$defs/execution_evidence" },
+    { "$ref": "#/$defs/case_run_grade" }
+  ],
+  "$defs": {
+    "execution_evidence": {
+      "type": "object",
+      "description": "ONE agent execution — the run-level fact, independent of how many cases grade its output.",
+      "required": ["run_id", "outcome"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string", "minLength": 1 },
+        "outcome": { "$ref": "#/$defs/run_outcome" },
+        "latency_ms": { "type": ["integer", "null"], "minimum": 0 },
+        "tokens": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "properties": {
+            "input": { "type": "integer", "minimum": 0 },
+            "output": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "error": {
+          "type": ["string", "null"],
+          "description": "Failure text when outcome != 'valid' (e.g. the timeout/provider error); null when valid."
+        }
+      }
+    },
+    "case_run_grade": {
+      "type": "object",
+      "description": "ONE (run, case) quality grade — a single check's verdict on one execution's output. Many of these can share a run_id (universal rules + the case's own check all grade the same execution).",
+      "required": ["run_id", "case_id", "check_status"],
+      "additionalProperties": false,
+      "properties": {
+        "run_id": { "type": "string", "minLength": 1 },
+        "case_id": { "type": "string", "minLength": 1 },
+        "score": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Quality of this output for THIS case in [0,1]. MUST be null when the execution's outcome != 'valid' (an invalid execution has no quality — letting it read as 0 reopens the survivorship hole) OR when check_status != 'measured'. Only non-null scores enter behavior quality."
+        },
+        "check_status": {
+          "enum": ["measured", "judge_unavailable", "check_error"],
+          "description": "Whether this check could run at all. 'judge_unavailable'/'check_error' are COVERAGE misses (score is null), NOT quality failures — they lower coverage, never behavior quality."
+        },
+        "detail": { "type": "string", "description": "Short human-readable note (the judge's reasoning, or why the check could not run)." }
+      }
+    },
+    "run_outcome": {
+      "description": "Run-LEVEL outcome. 'valid' means the agent executed and produced a well-formed output (even if the answer is wrong — that is a quality miss, not a reliability miss). The failure categories feed execution reliability, NOT behavior quality. NOTE: an empty-but-well-formed answer is 'valid' (scored, usually 0), never 'invalid_response' — classifying empty as invalid would let a candidate game reliability by degrading to empty on hard cases. 'invalid_response' is reserved for protocol failures (output path missing, non-JSON when JSON required, truncated transport). Check-level failures (judge_unavailable, check_error) live on the case_run_grade as coverage, not here.",
+      "enum": [
+        "valid",
+        "agent_error",
+        "timeout",
+        "provider_error",
+        "invalid_response",
+        "runner_error"
+      ]
+    }
+  }
+}
