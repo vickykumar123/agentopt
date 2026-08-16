@@ -213,7 +213,7 @@ agent already calls.
 ### `agentopt history [--html]`
 Version table with score arcs + ASCII progression chart. `--html` also writes
 `.agentopt/reports/progress.html` (self-contained SVG) and `progress.png`
-(when `agentopt[charts]` is installed). Charts also refresh automatically
+(when `agentopt-ai[charts]` is installed). Charts also refresh automatically
 after every improve run that applied changes.
 
 ### `agentopt show <version>`

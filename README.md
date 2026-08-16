@@ -63,7 +63,7 @@ human-approved production traces into committed regression cases, while
 
 | Package | Runtime | Install |
 |---|---|---|
-| Python | Python 3.10+ | `pip install agentopt` |
+| Python | Python 3.10+ | `pip install agentopt-ai` |
 | Node | Node 18+ | `npm install agentopt` |
 
 A model backend is needed to propose fixes and grade fuzzy Qualities. Choose
@@ -84,7 +84,7 @@ Qualities are skipped when no judge is available.
 Install and initialize inside the existing agent project:
 
 ```bash
-pip install agentopt
+pip install agentopt-ai   # distribution name on PyPI; the command is `agentopt`
 cd my-python-agent
 agentopt init
 ```
@@ -152,7 +152,7 @@ agentopt init --guided
 Optional PNG progress charts require:
 
 ```bash
-pip install "agentopt[charts]"
+pip install "agentopt-ai[charts]"
 ```
 
 ## Node.js / TypeScript quick start

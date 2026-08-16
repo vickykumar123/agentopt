@@ -14,9 +14,9 @@ implement policy-gradient or value-based algorithms.
 ## Install
 
 ```bash
-# Python agents
-pip install agentopt
-pip install "agentopt[charts]"    # optional PNG progress charts
+# Python agents (installs as agentopt-ai; the command is `agentopt`)
+pip install agentopt-ai
+pip install "agentopt-ai[charts]"    # optional PNG progress charts
 
 # Node/TypeScript agents
 npm install agentopt

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "agentopt"
+name = "agentopt-ai"
 version = "0.0.2"
 description = "Self-improving loop for your existing AI agent: write GOALS.md, agentopt measures the gap and closes it - prompts, params, tools, workflow. No model training. Under active development."
 readme = "README.md"

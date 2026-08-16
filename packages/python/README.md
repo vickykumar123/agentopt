@@ -24,13 +24,16 @@ it does not train a policy or implement policy-gradient/value-based RL.
   API credentials, or Ollama
 
 ```bash
-pip install agentopt
+pip install agentopt-ai
 ```
+
+> Installs as `agentopt-ai` on PyPI (the name `agentopt` was unavailable); the
+> import package and CLI command are both `agentopt`.
 
 Optional PNG charts:
 
 ```bash
-pip install "agentopt[charts]"
+pip install "agentopt-ai[charts]"
 ```
 
 ## Set up an existing agent
