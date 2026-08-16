@@ -1,6 +1,6 @@
 {
   "name": "agentopt",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Self-improving loop for your existing AI agent: write GOALS.md, agentopt measures the gap and closes it - prompts, params, and a learned playbook. No model training.",
   "keywords": [
     "ai",
@@ -19,7 +19,7 @@
   "type": "module",
   "main": "./dist/index.js",
   "bin": {
-    "agentopt": "./bin/agentopt.js"
+    "agentopt": "bin/agentopt.js"
   },
   "files": [
     "dist",
