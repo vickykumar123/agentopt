@@ -280,6 +280,26 @@ Tier-4 delegated code fixes also treat `GOALS.md`, `agentopt.yaml`, and
 `.agentopt/` as protected always. `agentopt.cases.yaml` is not built-in; add it
 to `protected` when a delegate must never alter the approved suite.
 
+## Case controls
+
+Per-case behavior is **not** set in `agentopt.yaml`. It lives on individual
+cases in the companion file `agentopt.cases.yaml` — durable, human-approved
+regression cases committed to git (created by `agentopt review`, or edited by
+hand). These fields tell the reward gate how to treat each case:
+
+| Field | Type | What it does |
+|---|---|---|
+| `critical` | bool | **Hard-constraint veto**, checked *before* quality. A candidate that regresses this case — or stops running it validly — is rejected outright; a gain elsewhere can never trade it away. Use for safety/business-critical behavior. |
+| `weight` | number | **Soft** priority within the quality dimension (default `1`). Scales how much this case's gain or regression counts. Never trades against a `critical` constraint, reliability, coverage, or holdout. |
+| `split` | `auto` \| `train` \| `holdout` | Pins the case to a side. `auto` (default) uses the stable hash-based rotation; an explicit value overrides it. A locked holdout case is also withheld from candidate generation. |
+| `locked` | bool | Automation (optimizer, reflector, review) may never delete, weaken, or rewrite this case — only an explicit human edit can. |
+| `group` | string | Free-text organizational label for reporting, clustering, and coverage. Not a foreign key. |
+
+`goal_id` is accepted but reserved (inert) for a future strict reference into
+named GOALS goals. See [Durable approved cases](examples.md#durable-approved-cases)
+for a complete `agentopt.cases.yaml` example, and [Writing GOALS.md](goals.md)
+for how `weight` relates to `## Priorities`.
+
 ## `websearch` — the improver's last resort
 
 ```yaml

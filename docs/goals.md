@@ -89,7 +89,9 @@ input calls that surface with `None`/`null`.
 `## Priorities` does not assign numeric weights today. For a reviewed structured
 case, set `weight` in `agentopt.cases.yaml`; it affects quality effect size only
 and cannot trade against a critical constraint, reliability, coverage, or
-holdout. See [Durable approved cases](examples.md#durable-approved-cases).
+holdout. See [Case controls](configuration.md#case-controls) for the full set of
+per-case fields (`critical`, `weight`, `split`, `locked`, `group`) and
+[Durable approved cases](examples.md#durable-approved-cases) for a complete example.
 
 ## Practical tips (learned the hard way)
 
