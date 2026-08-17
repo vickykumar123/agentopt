@@ -3,6 +3,10 @@
 > Write what your agent should do. agentopt measures the gap, proposes a fix,
 > verifies it, and keeps only improvements.
 
+![agentopt lifts an agent's score across verified improvement rounds](https://raw.githubusercontent.com/vickykumar123/agentopt/main/docs/assets/agentopt-improvement.png)
+
+*Illustrative example — each round applies only changes verified on a held-out split; regressions and statistically insignificant gains are auto-rejected.*
+
 ## What AgentOpt is
 
 **AgentOpt is a self-improvement system for AI agents.** More precisely, it is
